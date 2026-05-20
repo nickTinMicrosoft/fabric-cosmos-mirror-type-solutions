@@ -1,3 +1,6 @@
+# Reports (local only, not for repo)
+*.docx
+
 # .NET
 bin/
 obj/
