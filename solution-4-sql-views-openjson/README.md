@@ -1,5 +1,7 @@
 # Solution 4: SQL Views with OPENJSON + TRY_CAST
 
+> ⚠️ **DISCLAIMER:** This code is provided for **demonstration and educational purposes only**. It is not production-ready and should not be deployed to any environment without thorough review, testing, and validation by your engineering team. Before running any code from this repository in your environment, ensure it has been fully vetted for security, performance, error handling, and compliance with your organization's policies and standards. Use at your own risk.
+
 This solution fixes Cosmos DB mirroring type issues at query time by adding a semantic layer of T-SQL views on top of the mirrored tables. Instead of changing ingestion pipelines or rewriting source documents, you leave the mirrored tables as-is and expose consumer-friendly views that:
 
 - safely convert mixed data types with `TRY_CAST` and `TRY_CONVERT`

@@ -1,5 +1,7 @@
 # Solution 5: Schema Governance + Drift Monitoring
 
+> ⚠️ **DISCLAIMER:** This code is provided for **demonstration and educational purposes only**. It is not production-ready and should not be deployed to any environment without thorough review, testing, and validation by your engineering team. Before running any code from this repository in your environment, ensure it has been fully vetted for security, performance, error handling, and compliance with your organization's policies and standards. Use at your own risk.
+
 This solution prevents Microsoft Fabric Cosmos DB mirroring type issues before they happen and detects schema drift if upstream behavior changes.
 
 ## Two-part approach

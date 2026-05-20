@@ -1,5 +1,7 @@
 # Solution 3: Post-Mirror Transformation via Fabric Spark Notebook
 
+> ⚠️ **DISCLAIMER:** This code is provided for **demonstration and educational purposes only**. It is not production-ready and should not be deployed to any environment without thorough review, testing, and validation by your engineering team. Before running any code from this repository in your environment, ensure it has been fully vetted for security, performance, error handling, and compliance with your organization's policies and standards. Use at your own risk.
+
 This solution accepts the mirrored table as-is, including any `NULL` values introduced by incompatible Cosmos DB types in the SQL analytics endpoint, and repairs those values downstream with a Microsoft Fabric Spark notebook.
 
 Spark reads the mirrored Delta data directly from OneLake, applies schema-aware coercion and parsing logic, and writes a cleansed **gold** Delta table for analytics consumers.

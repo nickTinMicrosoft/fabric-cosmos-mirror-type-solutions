@@ -1,5 +1,7 @@
 # Solution 2: Dual-Property Pattern (Type-Safe Redundancy)
 
+> ⚠️ **DISCLAIMER:** This code is provided for **demonstration and educational purposes only**. It is not production-ready and should not be deployed to any environment without thorough review, testing, and validation by your engineering team. Before running any code from this repository in your environment, ensure it has been fully vetted for security, performance, error handling, and compliance with your organization's policies and standards. Use at your own risk.
+
 ## Overview
 
 The dual-property pattern protects Microsoft Fabric Cosmos DB mirroring from silently nulling values when the same logical property appears with different JSON types across documents.

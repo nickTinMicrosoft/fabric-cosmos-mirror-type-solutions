@@ -1,5 +1,7 @@
 # Fabric Cosmos Mirror Type Solutions
 
+> ⚠️ **DISCLAIMER:** This code is provided for **demonstration and educational purposes only**. It is not production-ready and should not be deployed to any environment without thorough review, testing, and validation by your engineering team. Before running any code from this repository in your environment, ensure it has been fully vetted for security, performance, error handling, and compliance with your organization's policies and standards. Use at your own risk.
+
 [![Docs](https://img.shields.io/badge/docs-included-blue)](#documentation)
 [![Samples](https://img.shields.io/badge/sample%20data-included-success)](#sample-data)
 [![License](https://img.shields.io/badge/license-MIT-green)](#license)

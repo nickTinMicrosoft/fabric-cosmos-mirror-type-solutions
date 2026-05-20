@@ -1,5 +1,7 @@
 # Solution 1: Pre-Ingestion Data Normalization
 
+> ⚠️ **DISCLAIMER:** This code is provided for **demonstration and educational purposes only**. It is not production-ready and should not be deployed to any environment without thorough review, testing, and validation by your engineering team. Before running any code from this repository in your environment, ensure it has been fully vetted for security, performance, error handling, and compliance with your organization's policies and standards. Use at your own risk.
+
 ## Overview
 
 This solution places an Azure Function between the source Cosmos DB container and the mirror-ready destination container.
