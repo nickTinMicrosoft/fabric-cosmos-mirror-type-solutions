@@ -1,0 +1,216 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "defaultValue": "la-cosmos-schema-drift-alerts"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus"
+    },
+    "notificationEmails": {
+      "type": "string",
+      "defaultValue": "dataops@contoso.com;platform@contoso.com"
+    },
+    "teamsWebhookUrl": {
+      "type": "securestring"
+    },
+    "minimumSeverityScore": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 0,
+      "maxValue": 2
+    },
+    "office365ConnectionId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of an existing Office 365 API connection used for email notifications."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "$connections": {
+              "type": "Object",
+              "defaultValue": {}
+            },
+            "notificationEmails": {
+              "type": "String"
+            },
+            "teamsWebhookUrl": {
+              "type": "String"
+            },
+            "minimumSeverityScore": {
+              "type": "Int"
+            }
+          },
+          "triggers": {
+            "When_a_HTTP_request_is_received": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": {
+                "method": "POST",
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "collectionName",
+                    "mirroredTable",
+                    "runId",
+                    "detectedAtUtc",
+                    "highestSeverityScore",
+                    "driftRows"
+                  ],
+                  "properties": {
+                    "collectionName": {
+                      "type": "string"
+                    },
+                    "mirroredTable": {
+                      "type": "string"
+                    },
+                    "runId": {
+                      "type": "string"
+                    },
+                    "detectedAtUtc": {
+                      "type": "string"
+                    },
+                    "highestSeverityScore": {
+                      "type": "integer"
+                    },
+                    "warningThresholdPct": {
+                      "type": "number"
+                    },
+                    "criticalThresholdPct": {
+                      "type": "number"
+                    },
+                    "driftRows": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "actions": {
+            "Check_Severity_Threshold": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "greaterOrEquals": [
+                      "@int(triggerBody()?['highestSeverityScore'])",
+                      "@parameters('minimumSeverityScore')"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Build_Alert_Summary": {
+                  "type": "Compose",
+                  "inputs": "@concat('Cosmos schema drift detected for collection ', triggerBody()?['collectionName'], ' (table ', triggerBody()?['mirroredTable'], '). RunId: ', triggerBody()?['runId'], '. Detected at: ', triggerBody()?['detectedAtUtc'], '. Rows with drift details: ', string(length(triggerBody()?['driftRows'])))"
+                },
+                "Send_Email_Notification": {
+                  "type": "ApiConnection",
+                  "runAfter": {
+                    "Build_Alert_Summary": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "host": {
+                      "connection": {
+                        "name": "@parameters('$connections')['office365']['connectionId']"
+                      }
+                    },
+                    "method": "post",
+                    "path": "/v2/Mail",
+                    "body": {
+                      "To": "@parameters('notificationEmails')",
+                      "Subject": "[Fabric Alert] Cosmos mirror schema drift detected",
+                      "Body": "<p>@{outputs('Build_Alert_Summary')}</p><p>Severity score: @{triggerBody()?['highestSeverityScore']}</p><p>Warning threshold: @{triggerBody()?['warningThresholdPct']}%</p><p>Critical threshold: @{triggerBody()?['criticalThresholdPct']}%</p><pre>@{string(triggerBody()?['driftRows'])}</pre>",
+                      "Importance": "High"
+                    }
+                  }
+                },
+                "Post_To_Teams_Webhook": {
+                  "type": "Http",
+                  "runAfter": {
+                    "Send_Email_Notification": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": {
+                    "method": "POST",
+                    "uri": "@parameters('teamsWebhookUrl')",
+                    "headers": {
+                      "Content-Type": "application/json"
+                    },
+                    "body": {
+                      "title": "Fabric Cosmos mirror schema drift",
+                      "text": "@concat(outputs('Build_Alert_Summary'), '\nSeverity score: ', string(triggerBody()?['highestSeverityScore']), '\nDrift payload: ', string(triggerBody()?['driftRows']))"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "No_Op": {
+                    "type": "Compose",
+                    "inputs": "Incoming event did not exceed the configured severity threshold."
+                  }
+                }
+              }
+            },
+            "Return_Response": {
+              "type": "Response",
+              "runAfter": {
+                "Check_Severity_Threshold": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "statusCode": 202,
+                "body": {
+                  "status": "accepted",
+                  "workflow": "cosmos-schema-drift-alerts"
+                }
+              }
+            }
+          },
+          "outputs": {}
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "office365": {
+                "connectionId": "[parameters('office365ConnectionId')]",
+                "connectionName": "office365",
+                "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/office365')]"
+              }
+            }
+          },
+          "notificationEmails": {
+            "value": "[parameters('notificationEmails')]"
+          },
+          "teamsWebhookUrl": {
+            "value": "[parameters('teamsWebhookUrl')]"
+          },
+          "minimumSeverityScore": {
+            "value": "[parameters('minimumSeverityScore')]"
+          }
+        }
+      }
+    }
+  ]
+}

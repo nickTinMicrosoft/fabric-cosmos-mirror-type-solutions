@@ -1,0 +1,164 @@
+[
+  {
+    "id": "order-1001",
+    "customerId": "C1001",
+    "orderDate": "2025-01-15T10:30:00Z",
+    "amount": 149.95,
+    "status": "Processing",
+    "isPriority": true,
+    "couponCode": null,
+    "tags": ["online", "priority"],
+    "items": [
+      {
+        "sku": "BK-100",
+        "name": "Business Analytics Handbook",
+        "quantity": 1,
+        "unitPrice": 99.95
+      },
+      {
+        "sku": "ACC-200",
+        "name": "Laptop Sleeve",
+        "quantity": 1,
+        "unitPrice": 50.0
+      }
+    ],
+    "address": {
+      "line1": "100 Main St",
+      "city": "Seattle",
+      "state": "WA",
+      "postalCode": "98101",
+      "country": "USA"
+    }
+  },
+  {
+    "id": "order-1002",
+    "customerId": "C1002",
+    "orderDate": "2025-01-16T08:15:00Z",
+    "amount": 42.5,
+    "status": "Shipped",
+    "isPriority": false,
+    "couponCode": "WELCOME10",
+    "tags": ["online", "gift"],
+    "items": [
+      {
+        "sku": "OFF-310",
+        "name": "Wireless Mouse",
+        "quantity": 1,
+        "unitPrice": 42.5
+      }
+    ],
+    "address": {
+      "line1": "42 Pine Ave",
+      "city": "Portland",
+      "state": "OR",
+      "postalCode": "97204",
+      "country": "USA"
+    }
+  },
+  {
+    "id": "order-1003",
+    "customerId": "C1003",
+    "orderDate": "2025-01-17T12:45:00Z",
+    "amount": 218.2,
+    "status": "Delivered",
+    "isPriority": false,
+    "couponCode": null,
+    "tags": ["store-pickup"],
+    "items": [
+      {
+        "sku": "EL-110",
+        "name": "USB-C Dock",
+        "quantity": 2,
+        "unitPrice": 79.1
+      },
+      {
+        "sku": "CB-120",
+        "name": "HDMI Cable",
+        "quantity": 1,
+        "unitPrice": 60.0
+      }
+    ],
+    "address": {
+      "line1": "18 Lakeview Blvd",
+      "city": "Denver",
+      "state": "CO",
+      "postalCode": "80202",
+      "country": "USA"
+    }
+  },
+  {
+    "id": "order-1004",
+    "customerId": "C1004",
+    "orderDate": "2025-01-18T09:05:00Z",
+    "amount": 15.0,
+    "status": "PendingPayment",
+    "isPriority": false,
+    "couponCode": "SAVE5",
+    "tags": ["subscription", "renewal"],
+    "items": [
+      {
+        "sku": "SUB-001",
+        "name": "Monthly Service Plan",
+        "quantity": 1,
+        "unitPrice": 15.0
+      }
+    ],
+    "address": {
+      "line1": "500 Market St",
+      "city": "San Francisco",
+      "state": "CA",
+      "postalCode": "94105",
+      "country": "USA"
+    }
+  },
+  {
+    "id": "order-1005",
+    "customerId": "C1005",
+    "orderDate": "2025-01-19T16:20:00Z",
+    "amount": 999.99,
+    "status": "FraudReview",
+    "isPriority": true,
+    "couponCode": null,
+    "tags": ["high-value", "manual-review"],
+    "items": [
+      {
+        "sku": "LAP-900",
+        "name": "Ultrabook Pro 14",
+        "quantity": 1,
+        "unitPrice": 999.99
+      }
+    ],
+    "address": {
+      "line1": "77 King St",
+      "city": "Toronto",
+      "state": "ON",
+      "postalCode": "M5H 1J9",
+      "country": "Canada"
+    }
+  },
+  {
+    "id": "order-1006",
+    "customerId": "C1006",
+    "orderDate": "2025-01-20T11:10:00Z",
+    "amount": 73.4,
+    "status": "Returned",
+    "isPriority": false,
+    "couponCode": null,
+    "tags": ["return", "support-case"],
+    "items": [
+      {
+        "sku": "AUDIO-22",
+        "name": "Noise-Isolating Earbuds",
+        "quantity": 1,
+        "unitPrice": 73.4
+      }
+    ],
+    "address": {
+      "line1": "12 Queen Rd",
+      "city": "London",
+      "state": "England",
+      "postalCode": "SW1A 1AA",
+      "country": "UK"
+    }
+  }
+]

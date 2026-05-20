@@ -1,0 +1,222 @@
+{
+  "name": "pl_CosmosMirrorSchemaDriftMonitor",
+  "properties": {
+    "description": "Hourly Fabric Data Pipeline that measures mirrored-table NULL rates, compares them with a baseline, and calls a Logic App webhook when drift is detected.",
+    "annotations": [
+      "solution-5-schema-governance",
+      "schema-drift-monitoring",
+      "hourly-schedule"
+    ],
+    "folder": {
+      "name": "Monitoring/SchemaGovernance"
+    },
+    "parameters": {
+      "workspaceId": {
+        "type": "string",
+        "defaultValue": "00000000-0000-0000-0000-000000000000"
+      },
+      "kqlDatabase": {
+        "type": "string",
+        "defaultValue": "MirroredOperationalData"
+      },
+      "mirroredTable": {
+        "type": "string",
+        "defaultValue": "OrdersMirror"
+      },
+      "baselineTable": {
+        "type": "string",
+        "defaultValue": "dbo.MirrorNullRateBaseline"
+      },
+      "resultsTable": {
+        "type": "string",
+        "defaultValue": "dbo.MirrorNullRateDrift"
+      },
+      "collectionName": {
+        "type": "string",
+        "defaultValue": "Orders"
+      },
+      "evaluationWindowHours": {
+        "type": "int",
+        "defaultValue": 4
+      },
+      "warningThresholdPct": {
+        "type": "float",
+        "defaultValue": 5.0
+      },
+      "criticalThresholdPct": {
+        "type": "float",
+        "defaultValue": 15.0
+      },
+      "alertWebhookUrl": {
+        "type": "string",
+        "defaultValue": "https://example.logic.azure.com/workflows/replace-me/triggers/manual/paths/invoke"
+      }
+    },
+    "variables": {
+      "runTimestampUtc": {
+        "type": "String",
+        "defaultValue": "@utcNow()"
+      }
+    },
+    "activities": [
+      {
+        "name": "GetBaselineNullRates",
+        "type": "Lookup",
+        "policy": {
+          "timeout": "00:05:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "SqlSource",
+            "sqlReaderQuery": "SELECT ColumnName, ExpectedNullPct, SeverityFloor FROM @{pipeline().parameters.baselineTable} WHERE CollectionName = '@{pipeline().parameters.collectionName}'"
+          },
+          "firstRowOnly": false,
+          "datasetSettings": {
+            "type": "WarehouseTable",
+            "schema": "dbo",
+            "table": "MirrorNullRateBaseline"
+          }
+        }
+      },
+      {
+        "name": "GetCurrentNullRates",
+        "type": "Lookup",
+        "dependsOn": [
+          {
+            "activity": "GetBaselineNullRates",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "00:10:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "source": {
+            "type": "KustoSource",
+            "query": "let EvaluationWindow = totimespan(strcat(string(pipeline().parameters.evaluationWindowHours), 'h')); let SourceTable = table(pipeline().parameters.mirroredTable); SourceTable | where ingestion_time() >= ago(EvaluationWindow) | extend AllColumns = pack_all() | mv-expand ColumnName = bag_keys(AllColumns) to typeof(string) | extend ColumnValue = AllColumns[ColumnName] | summarize RowCount = count(), NullCount = countif(isnull(ColumnValue) or tostring(ColumnValue) == '') by ColumnName | extend CurrentNullPct = round(100.0 * todouble(NullCount) / todouble(RowCount), 2) | project ColumnName, CurrentNullPct, RowCount, NullCount"
+          },
+          "firstRowOnly": false,
+          "datasetSettings": {
+            "type": "KustoTable",
+            "database": "@{pipeline().parameters.kqlDatabase}",
+            "table": "@{pipeline().parameters.mirroredTable}"
+          }
+        }
+      },
+      {
+        "name": "CompareAgainstBaseline",
+        "type": "Script",
+        "dependsOn": [
+          {
+            "activity": "GetCurrentNullRates",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "00:10:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "scripts": [
+            {
+              "type": "Query",
+              "text": "INSERT INTO @{pipeline().parameters.resultsTable} (RunId, CollectionName, ColumnName, ExpectedNullPct, CurrentNullPct, NullDeltaPct, Severity, EvaluatedAtUtc) SELECT '@{pipeline().RunId}', '@{pipeline().parameters.collectionName}', currentRates.ColumnName, baseline.ExpectedNullPct, currentRates.CurrentNullPct, currentRates.CurrentNullPct - baseline.ExpectedNullPct, CASE WHEN currentRates.CurrentNullPct - baseline.ExpectedNullPct >= @{pipeline().parameters.criticalThresholdPct} THEN 'Critical' WHEN currentRates.CurrentNullPct - baseline.ExpectedNullPct >= @{pipeline().parameters.warningThresholdPct} THEN 'Warning' ELSE 'Healthy' END, '@{variables('runTimestampUtc')}' FROM OPENJSON('@{string(activity('GetCurrentNullRates').output.value)}') WITH (ColumnName nvarchar(200) '$.ColumnName', CurrentNullPct float '$.CurrentNullPct') AS currentRates INNER JOIN @{pipeline().parameters.baselineTable} baseline ON baseline.CollectionName = '@{pipeline().parameters.collectionName}' AND baseline.ColumnName = currentRates.ColumnName; SELECT COUNT(1) AS DriftCount, MAX(CASE Severity WHEN 'Critical' THEN 2 WHEN 'Warning' THEN 1 ELSE 0 END) AS HighestSeverityScore FROM @{pipeline().parameters.resultsTable} WHERE RunId = '@{pipeline().RunId}' AND NullDeltaPct >= @{pipeline().parameters.warningThresholdPct};"
+            }
+          ],
+          "scriptBlockExecutionTimeout": "00:05:00"
+        }
+      },
+      {
+        "name": "IfDriftDetected",
+        "type": "IfCondition",
+        "dependsOn": [
+          {
+            "activity": "CompareAgainstBaseline",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "expression": {
+            "type": "Expression",
+            "value": "@greater(int(activity('CompareAgainstBaseline').output.resultSets[0].rows[0].DriftCount), 0)"
+          },
+          "ifTrueActivities": [
+            {
+              "name": "SendSchemaDriftAlert",
+              "type": "WebActivity",
+              "policy": {
+                "timeout": "00:05:00",
+                "retry": 1,
+                "retryIntervalInSeconds": 30,
+                "secureOutput": true,
+                "secureInput": true
+              },
+              "typeProperties": {
+                "method": "POST",
+                "url": "@pipeline().parameters.alertWebhookUrl",
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "body": {
+                  "collectionName": "@pipeline().parameters.collectionName",
+                  "mirroredTable": "@pipeline().parameters.mirroredTable",
+                  "runId": "@pipeline().RunId",
+                  "detectedAtUtc": "@variables('runTimestampUtc')",
+                  "highestSeverityScore": "@activity('CompareAgainstBaseline').output.resultSets[0].rows[0].HighestSeverityScore",
+                  "warningThresholdPct": "@pipeline().parameters.warningThresholdPct",
+                  "criticalThresholdPct": "@pipeline().parameters.criticalThresholdPct",
+                  "driftRows": "@activity('GetCurrentNullRates').output.value"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "triggers": [
+    {
+      "name": "tr_HourlySchemaDriftCheck",
+      "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+          "recurrence": {
+            "frequency": "Hour",
+            "interval": 1,
+            "startTime": "2025-01-01T00:00:00Z",
+            "timeZone": "UTC"
+          }
+        },
+        "pipelines": [
+          {
+            "pipelineReference": {
+              "referenceName": "pl_CosmosMirrorSchemaDriftMonitor",
+              "type": "PipelineReference"
+            },
+            "parameters": {
+              "collectionName": "Orders",
+              "mirroredTable": "OrdersMirror"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

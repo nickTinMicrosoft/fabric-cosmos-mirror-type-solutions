@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+*.user
+*.rsuser
+*.suo
+.vs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Node.js
+node_modules/
+
+# IDEs
+.idea/
+.vscode/settings.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Azure / local secrets
+local.settings.json
+appsettings.Development.json

@@ -1,0 +1,98 @@
+{
+  "examples": [
+    {
+      "comment": "Integer amount becomes both amount_int and amount_float so Fabric gets stable numeric columns while the original amount property remains unchanged.",
+      "before": {
+        "id": "order-1001",
+        "tenantId": "retail-a",
+        "amount": 125,
+        "status": "paid"
+      },
+      "after": {
+        "id": "order-1001",
+        "tenantId": "retail-a",
+        "amount": 125,
+        "amount_int": 125,
+        "amount_float": 125,
+        "status": "paid",
+        "status_string": "paid"
+      }
+    },
+    {
+      "comment": "A numeric-looking string cannot safely land in a numeric mirror column, so it is preserved as amount_string for query-time TRY_CAST logic.",
+      "before": {
+        "id": "order-1002",
+        "tenantId": "retail-a",
+        "amount": "125.99",
+        "status": "paid"
+      },
+      "after": {
+        "id": "order-1002",
+        "tenantId": "retail-a",
+        "amount": "125.99",
+        "amount_string": "125.99",
+        "status": "paid",
+        "status_string": "paid"
+      }
+    },
+    {
+      "comment": "Boolean and array values get their own safe variants: bool stays native, array is serialized into a string column for downstream parsing if needed.",
+      "before": {
+        "id": "customer-301",
+        "tenantId": "retail-b",
+        "isActive": true,
+        "tags": ["vip", "trial"]
+      },
+      "after": {
+        "id": "customer-301",
+        "tenantId": "retail-b",
+        "isActive": true,
+        "isActive_bool": true,
+        "tags": ["vip", "trial"],
+        "tags_array": "[\"vip\",\"trial\"]"
+      }
+    },
+    {
+      "comment": "Objects are serialized into a JSON string companion property so the mirror stores a stable scalar column instead of nulling mixed object content.",
+      "before": {
+        "id": "customer-302",
+        "tenantId": "retail-b",
+        "profile": {
+          "tier": "gold",
+          "score": 98
+        },
+        "region": "west"
+      },
+      "after": {
+        "id": "customer-302",
+        "tenantId": "retail-b",
+        "profile": {
+          "tier": "gold",
+          "score": 98
+        },
+        "profile_json": "{\"tier\":\"gold\",\"score\":98}",
+        "region": "west",
+        "region_string": "west"
+      }
+    },
+    {
+      "comment": "Floating-point numbers only receive the float variant, while null properties are left alone because there is no concrete type to preserve.",
+      "before": {
+        "id": "invoice-9001",
+        "tenantId": "finance-a",
+        "amount": 19.95,
+        "approved": false,
+        "notes": null
+      },
+      "after": {
+        "id": "invoice-9001",
+        "tenantId": "finance-a",
+        "amount": 19.95,
+        "amount_float": 19.95,
+        "approved": false,
+        "approved_bool": false,
+        "notes": null
+      }
+    }
+  ]
+}

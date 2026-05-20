@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "CosmosDBConnection": "AccountEndpoint=https://your-account.documents.azure.com:443/;AccountKey=replace-me;",
+    "SourceDatabase": "source-db",
+    "SourceContainer": "source-container",
+    "DestinationDatabase": "destination-db",
+    "DestinationContainer": "mirror-ready-container",
+    "NormalizationRulesPath": "normalization-rules.json"
+  }
+}

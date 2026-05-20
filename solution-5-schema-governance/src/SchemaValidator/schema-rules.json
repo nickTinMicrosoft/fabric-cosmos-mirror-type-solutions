@@ -1,0 +1,238 @@
+{
+  "collectionName": "Orders",
+  "description": "Governance rules for an Orders collection mirrored from Azure Cosmos DB into Microsoft Fabric. Description fields are used as inline documentation because JSON does not support comments.",
+  "maxDepth": 127,
+  "maxPropertyCount": 1000,
+  "requiredProperties": [
+    "id",
+    "orderNumber",
+    "orderDateUtc",
+    "amount",
+    "currencyCode",
+    "status",
+    "customer",
+    "items"
+  ],
+  "allowAdditionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "required": true,
+      "allowNull": false,
+      "maxLength": 64,
+      "description": "Cosmos DB document id. Keep this stable and string-typed."
+    },
+    "tenantId": {
+      "type": "string",
+      "required": false,
+      "allowNull": false,
+      "maxLength": 36,
+      "description": "Logical tenant partition identifier written by the application layer."
+    },
+    "orderNumber": {
+      "type": "string",
+      "required": true,
+      "allowNull": false,
+      "maxLength": 30,
+      "description": "Business-facing order number. Never write this as a number because leading zeros may be significant."
+    },
+    "orderDateUtc": {
+      "type": "string",
+      "required": true,
+      "allowNull": false,
+      "maxLength": 33,
+      "description": "UTC timestamp serialized as an ISO-8601 string."
+    },
+    "amount": {
+      "type": "number",
+      "required": true,
+      "allowNull": false,
+      "description": "Total monetary amount. Fabric mirroring should always see a numeric type here."
+    },
+    "discountAmount": {
+      "type": "number",
+      "required": false,
+      "allowNull": false,
+      "defaultValue": 0,
+      "description": "Optional discount amount. Defaulted to 0 in normalize mode when omitted or null."
+    },
+    "currencyCode": {
+      "type": "string",
+      "required": true,
+      "allowNull": false,
+      "maxLength": 3,
+      "allowedValues": [
+        "USD",
+        "EUR",
+        "GBP",
+        "CAD",
+        "AUD"
+      ],
+      "description": "Three-letter ISO currency code."
+    },
+    "status": {
+      "type": "string",
+      "required": true,
+      "allowNull": false,
+      "maxLength": 20,
+      "allowedValues": [
+        "Pending",
+        "Paid",
+        "Shipped",
+        "Cancelled",
+        "Refunded"
+      ],
+      "description": "Order lifecycle state."
+    },
+    "isPriority": {
+      "type": "boolean",
+      "required": false,
+      "allowNull": false,
+      "defaultValue": false,
+      "description": "Priority shipping flag. Normalize mode can coerce string values such as 'true' or 'false'."
+    },
+    "customer": {
+      "type": "object",
+      "required": true,
+      "allowNull": false,
+      "allowAdditionalProperties": true,
+      "description": "Embedded customer details used by fulfillment and analytics.",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "required": true,
+          "allowNull": false,
+          "maxLength": 64,
+          "description": "Stable customer identifier from the source system."
+        },
+        "email": {
+          "type": "string",
+          "required": true,
+          "allowNull": false,
+          "maxLength": 256,
+          "description": "Primary contact email address."
+        },
+        "loyaltyTier": {
+          "type": "string",
+          "required": false,
+          "allowNull": true,
+          "maxLength": 30,
+          "description": "Optional segmentation field used for customer analytics."
+        },
+        "address": {
+          "type": "object",
+          "required": false,
+          "allowNull": true,
+          "description": "Nested shipping address for reporting and downstream enrichment.",
+          "properties": {
+            "line1": {
+              "type": "string",
+              "required": true,
+              "allowNull": false,
+              "maxLength": 200,
+              "description": "Primary address line."
+            },
+            "city": {
+              "type": "string",
+              "required": true,
+              "allowNull": false,
+              "maxLength": 100,
+              "description": "City or locality."
+            },
+            "stateOrProvince": {
+              "type": "string",
+              "required": false,
+              "allowNull": true,
+              "maxLength": 100,
+              "description": "Optional region or province."
+            },
+            "postalCode": {
+              "type": "string",
+              "required": false,
+              "allowNull": true,
+              "maxLength": 20,
+              "description": "Postal or ZIP code."
+            },
+            "countryCode": {
+              "type": "string",
+              "required": true,
+              "allowNull": false,
+              "maxLength": 2,
+              "description": "Two-letter ISO country code."
+            }
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "required": true,
+      "allowNull": false,
+      "minItems": 1,
+      "description": "Line items. Arrays must be homogeneous so every element follows the same object schema.",
+      "items": {
+        "type": "object",
+        "required": true,
+        "allowNull": false,
+        "allowAdditionalProperties": true,
+        "properties": {
+          "sku": {
+            "type": "string",
+            "required": true,
+            "allowNull": false,
+            "maxLength": 50,
+            "description": "Inventory SKU."
+          },
+          "quantity": {
+            "type": "number",
+            "required": true,
+            "allowNull": false,
+            "description": "Ordered quantity. Always numeric to avoid mirror drift."
+          },
+          "unitPrice": {
+            "type": "number",
+            "required": true,
+            "allowNull": false,
+            "description": "Unit price for the line item."
+          },
+          "tags": {
+            "type": "array",
+            "required": false,
+            "allowNull": true,
+            "description": "Optional homogeneous string array used by fulfillment logic.",
+            "items": {
+              "type": "string",
+              "required": false,
+              "allowNull": false,
+              "maxLength": 50,
+              "description": "Single descriptive tag."
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": false,
+      "allowNull": true,
+      "allowAdditionalProperties": true,
+      "description": "Loose metadata bag. Leave governed fields above strongly typed even if metadata stays flexible.",
+      "properties": {
+        "sourceSystem": {
+          "type": "string",
+          "required": false,
+          "allowNull": true,
+          "maxLength": 50,
+          "description": "Source system name for operational lineage."
+        },
+        "ingestionBatchId": {
+          "type": "string",
+          "required": false,
+          "allowNull": true,
+          "maxLength": 64,
+          "description": "Optional batch identifier for traceability."
+        }
+      }
+    }
+  }
+}

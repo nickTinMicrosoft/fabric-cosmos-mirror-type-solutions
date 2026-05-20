@@ -1,0 +1,108 @@
+// -----------------------------------------------------------------------------
+// Query 1: Calculate NULL percentage per column over time for a mirrored table.
+// Replace OrdersMirror with the mirrored table name or parameterize in Fabric.
+// -----------------------------------------------------------------------------
+let SourceTable = OrdersMirror;
+SourceTable
+| where ingestion_time() >= ago(24h)
+| extend AllColumns = pack_all(), ObservedAt = bin(ingestion_time(), 1h)
+| mv-expand ColumnName = bag_keys(AllColumns) to typeof(string)
+| extend ColumnValue = AllColumns[ColumnName]
+| summarize
+    RowCount = count(),
+    NullCount = countif(isnull(ColumnValue) or tostring(ColumnValue) == "")
+    by ColumnName, ObservedAt
+| extend NullPct = round(100.0 * todouble(NullCount) / todouble(RowCount), 2)
+| order by ObservedAt desc, ColumnName asc;
+
+// -----------------------------------------------------------------------------
+// Query 2: Detect sudden spikes in NULL rates by comparing a recent window against
+// a longer historical baseline.
+// -----------------------------------------------------------------------------
+let SpikeThresholdPct = 15.0;
+let RecentWindow = 2h;
+let BaselineWindow = 7d;
+let SourceTable = OrdersMirror;
+let Baseline =
+    SourceTable
+    | where ingestion_time() between (ago(BaselineWindow) .. ago(RecentWindow))
+    | extend AllColumns = pack_all()
+    | mv-expand ColumnName = bag_keys(AllColumns) to typeof(string)
+    | extend ColumnValue = AllColumns[ColumnName]
+    | summarize BaselineNullPct = 100.0 * todouble(countif(isnull(ColumnValue) or tostring(ColumnValue) == "")) / todouble(count()) by ColumnName;
+let Recent =
+    SourceTable
+    | where ingestion_time() >= ago(RecentWindow)
+    | extend AllColumns = pack_all()
+    | mv-expand ColumnName = bag_keys(AllColumns) to typeof(string)
+    | extend ColumnValue = AllColumns[ColumnName]
+    | summarize RecentNullPct = 100.0 * todouble(countif(isnull(ColumnValue) or tostring(ColumnValue) == "")) / todouble(count()) by ColumnName;
+Recent
+| join kind=inner Baseline on ColumnName
+| extend NullDeltaPct = round(RecentNullPct - BaselineNullPct, 2)
+| where NullDeltaPct > SpikeThresholdPct
+| project ColumnName, BaselineNullPct = round(BaselineNullPct, 2), RecentNullPct = round(RecentNullPct, 2), NullDeltaPct
+| order by NullDeltaPct desc;
+
+// -----------------------------------------------------------------------------
+// Query 3: Find columns where the NULL rate changed by more than X percent in the
+// last Y hours. This is useful for Fabric pipeline parameterization.
+// -----------------------------------------------------------------------------
+let ChangeThresholdPct = 10.0;
+let EvaluationWindow = 6h;
+let HistoricalWindow = 48h;
+let SourceTable = OrdersMirror;
+let Historical =
+    SourceTable
+    | where ingestion_time() between (ago(HistoricalWindow) .. ago(EvaluationWindow))
+    | extend AllColumns = pack_all()
+    | mv-expand ColumnName = bag_keys(AllColumns) to typeof(string)
+    | extend ColumnValue = AllColumns[ColumnName]
+    | summarize HistoricalNullPct = 100.0 * todouble(countif(isnull(ColumnValue) or tostring(ColumnValue) == "")) / todouble(count()) by ColumnName;
+let Current =
+    SourceTable
+    | where ingestion_time() >= ago(EvaluationWindow)
+    | extend AllColumns = pack_all()
+    | mv-expand ColumnName = bag_keys(AllColumns) to typeof(string)
+    | extend ColumnValue = AllColumns[ColumnName]
+    | summarize CurrentNullPct = 100.0 * todouble(countif(isnull(ColumnValue) or tostring(ColumnValue) == "")) / todouble(count()) by ColumnName;
+Current
+| join kind=fullouter Historical on ColumnName
+| extend HistoricalNullPct = coalesce(HistoricalNullPct, 0.0), CurrentNullPct = coalesce(CurrentNullPct, 0.0)
+| extend NullRateDeltaPct = round(CurrentNullPct - HistoricalNullPct, 2)
+| where abs(NullRateDeltaPct) > ChangeThresholdPct
+| project ColumnName, HistoricalNullPct = round(HistoricalNullPct, 2), CurrentNullPct = round(CurrentNullPct, 2), NullRateDeltaPct
+| order by abs(NullRateDeltaPct) desc;
+
+// -----------------------------------------------------------------------------
+// Query 4: Generate a drift report table that can feed alerts or operational review.
+// The output includes a simple severity band.
+// -----------------------------------------------------------------------------
+let WarningThresholdPct = 5.0;
+let CriticalThresholdPct = 15.0;
+let EvaluationWindow = 4h;
+let SourceTable = OrdersMirror;
+let Baseline =
+    SourceTable
+    | where ingestion_time() between (ago(7d) .. ago(EvaluationWindow))
+    | extend AllColumns = pack_all()
+    | mv-expand ColumnName = bag_keys(AllColumns) to typeof(string)
+    | extend ColumnValue = AllColumns[ColumnName]
+    | summarize BaselineNullPct = 100.0 * todouble(countif(isnull(ColumnValue) or tostring(ColumnValue) == "")) / todouble(count()) by ColumnName;
+let Current =
+    SourceTable
+    | where ingestion_time() >= ago(EvaluationWindow)
+    | extend AllColumns = pack_all()
+    | mv-expand ColumnName = bag_keys(AllColumns) to typeof(string)
+    | extend ColumnValue = AllColumns[ColumnName]
+    | summarize CurrentNullPct = 100.0 * todouble(countif(isnull(ColumnValue) or tostring(ColumnValue) == "")) / todouble(count()) by ColumnName;
+Current
+| join kind=fullouter Baseline on ColumnName
+| extend BaselineNullPct = coalesce(BaselineNullPct, 0.0), CurrentNullPct = coalesce(CurrentNullPct, 0.0)
+| extend NullDeltaPct = round(CurrentNullPct - BaselineNullPct, 2)
+| extend Severity = case(
+    NullDeltaPct >= CriticalThresholdPct, "Critical",
+    NullDeltaPct >= WarningThresholdPct, "Warning",
+    "Healthy")
+| project ReportGeneratedAt = now(), ColumnName, BaselineNullPct = round(BaselineNullPct, 2), CurrentNullPct = round(CurrentNullPct, 2), NullDeltaPct, Severity
+| order by Severity desc, NullDeltaPct desc;

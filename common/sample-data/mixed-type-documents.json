@@ -1,0 +1,120 @@
+[
+  {
+    "id": "order-problem-2001",
+    "customerId": "C2001",
+    "orderDate": "2025-02-01T09:00:00Z",
+    "amount": 120.5,
+    "status": "Processing",
+    "deliveryInstructions": ["leave at front desk", "call on arrival"],
+    "tags": ["priority", "wholesale"],
+    "items": [
+      {
+        "sku": "KIT-100",
+        "quantity": 2
+      }
+    ],
+    "profile": {
+      "loyaltyScore": 98,
+      "preferredContact": "email"
+    }
+  },
+  {
+    "id": "order-problem-2002",
+    "customerId": "C2002",
+    "orderDate": "2025-02-01T10:00:00Z",
+    "amount": "120.50",
+    "status": "Processing",
+    "deliveryInstructions": ["ring bell twice"],
+    "tags": ["priority", 42, true],
+    "items": [
+      {
+        "sku": "KIT-200",
+        "quantity": 1
+      }
+    ],
+    "profile": {
+      "loyaltyScore": 85,
+      "preferredContact": "sms"
+    }
+  },
+  {
+    "id": "order-problem-2003",
+    "customerId": "C2003",
+    "orderDate": "2025-02-01T11:00:00Z",
+    "amount": 88,
+    "status": "Packed",
+    "deliveryInstructions": "leave with security",
+    "tags": ["gift", "expedite"],
+    "items": "KIT-300",
+    "profile": {
+      "loyaltyScore": {
+        "band": "gold",
+        "points": 7200
+      },
+      "preferredContact": "phone"
+    }
+  },
+  {
+    "id": "order-problem-2004",
+    "customerId": "C2004",
+    "orderDate": "2025-02-01T12:00:00Z",
+    "amount": null,
+    "status": "Delivered",
+    "deliveryInstructions": ["rear entrance"],
+    "tags": ["standard"],
+    "items": [
+      {
+        "sku": "KIT-400",
+        "quantity": 3
+      }
+    ],
+    "profile": {
+      "loyaltyScore": 67,
+      "preferredContact": "email"
+    },
+    "deeplyNested": {
+      "level1": {
+        "level2": {
+          "level3": {
+            "level4": {
+              "level5": {
+                "level6": {
+                  "level7": {
+                    "level8": {
+                      "note": "Deep nesting is valid JSON, but wide/deep documents increase schema pressure."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "order-problem-2005",
+    "customerId": "C2005",
+    "orderDate": "2025-02-01T13:00:00Z",
+    "amount": 44.25,
+    "status": ["Delivered", "RefundPending"],
+    "deliveryInstructions": ["signature required"],
+    "tags": [
+      {
+        "code": "vip"
+      },
+      "priority"
+    ],
+    "items": [
+      {
+        "sku": "KIT-500",
+        "quantity": 1
+      },
+      "unexpected-string-item"
+    ],
+    "profile": {
+      "loyaltyScore": 51,
+      "preferredContact": "email"
+    }
+  }
+]

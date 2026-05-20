@@ -1,0 +1,64 @@
+[
+  {
+    "id": "order-unsupported-3001",
+    "customerId": "C3001",
+    "orderDate": "2025-02-05T09:30:00Z",
+    "amountDecimal128": {
+      "$numberDecimal": "1234.5678"
+    },
+    "promoRegex": {
+      "$regularExpression": {
+        "pattern": "^PROMO-[0-9]{4}$",
+        "options": "i"
+      }
+    },
+    "status": "NeedsNormalization"
+  },
+  {
+    "id": "order-unsupported-3002",
+    "customerId": "C3002",
+    "orderDate": "2025-02-05T10:00:00Z",
+    "legacyCustomerPointer": {
+      "$dbPointer": {
+        "$ref": "customers",
+        "$id": "C3002"
+      }
+    },
+    "ruleScript": {
+      "$code": "function applyDiscount(total) { return total * 0.95; }"
+    },
+    "status": "NeedsNormalization"
+  },
+  {
+    "id": "order-unsupported-3003",
+    "customerId": "C3003",
+    "orderDate": "2025-02-05T10:30:00Z",
+    "membershipSymbol": {
+      "$symbol": "PLATINUM"
+    },
+    "rangeMarker": {
+      "$minKey": 1
+    },
+    "status": "NeedsNormalization"
+  },
+  {
+    "id": "order-unsupported-3004",
+    "customerId": "C3004",
+    "orderDate": "2025-02-05T11:00:00Z",
+    "archiveMarker": {
+      "$maxKey": 1
+    },
+    "pricing": {
+      "list": {
+        "$numberDecimal": "499.9900"
+      },
+      "discountRule": {
+        "$regularExpression": {
+          "pattern": "^(VIP|EMPLOYEE)$",
+          "options": ""
+        }
+      }
+    },
+    "status": "NeedsNormalization"
+  }
+]
